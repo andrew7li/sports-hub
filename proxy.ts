@@ -20,5 +20,11 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // opengraph-image (and icon/apple-icon, if those get added back) must stay
+  // public: link-preview crawlers (Slack, Discord, Twitter/X, etc.) don't
+  // follow a redirect to /login to fetch the image, so gating it here would
+  // make every shared link preview broken instead of showing the OG image.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|opengraph-image).*)",
+  ],
 };
