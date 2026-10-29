@@ -26,15 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {children}
-        <footer className="border-t border-line">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 text-xs text-muted sm:px-6">
-            SportsHub aggregates public data from the NHL API and
-            hockeystats.com. Not affiliated with any league.
-          </div>
-        </footer>
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
