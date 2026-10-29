@@ -5,6 +5,7 @@ import {
 } from "./sources/nhlApi";
 import { fetchPlayoffOdds } from "./sources/hockeyStatsPlayoffOdds";
 import { fetchStartingGoalies } from "./sources/dailyFaceoffGoalies";
+import { getTodayEasternDate } from "./easternDate";
 import type { NhlSnapshot } from "./types";
 
 export async function aggregateNhlSnapshot(): Promise<NhlSnapshot> {
@@ -24,7 +25,11 @@ export async function aggregateNhlSnapshot(): Promise<NhlSnapshot> {
   ] = await Promise.allSettled([
     standingsPromise,
     recentGamesPromise,
-    fetchScores(),
+    // NHL's own "now" alias lags behind the actual calendar day (observed
+    // still returning yesterday's slate well after midnight ET), so this
+    // asks for our own computed Eastern date explicitly instead of trusting
+    // their rollover timing.
+    fetchScores(getTodayEasternDate()),
     fetchPlayoffOdds(),
     fetchStartingGoalies(),
   ]);
