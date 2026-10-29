@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { GameSummary } from "@/lib/nhl/types";
-import { NHL_TIME_ZONE } from "@/lib/nhl/easternDate";
+import { NHL_TIME_ZONE, formatEasternDateLabel } from "@/lib/nhl/easternDate";
 import { GameCard } from "./GameCard";
 
 function easternDateOf(isoDateTime: string): string {
@@ -18,21 +18,31 @@ type Tab = "today" | "tomorrow";
 
 type TomorrowState =
   | { status: "idle" }
-  | { status: "loaded"; games: GameSummary[]; sourceAvailable: boolean }
+  | {
+      status: "loaded";
+      games: GameSummary[];
+      sourceAvailable: boolean;
+      error?: string;
+    }
   | { status: "error" };
 
 export function GamesTabs({
   todayGames,
+  todayDate,
+  tomorrowDate,
   logos,
   fetchTomorrow,
 }: {
   todayGames: GameSummary[];
+  todayDate: string;
+  tomorrowDate: string;
   logos: Map<string, string>;
   // A server action passed down from the page — keeps this component free of
   // its own "use server" import and of knowing anything about auth.
   fetchTomorrow: () => Promise<{
     games: GameSummary[];
     sourceAvailable: boolean;
+    error?: string;
   }>;
 }) {
   const [tab, setTab] = useState<Tab>("today");
@@ -41,10 +51,11 @@ export function GamesTabs({
 
   function selectTomorrow() {
     setTab("tomorrow");
-    // Only fetch the first time this is clicked — the result stays cached
-    // both here (for the rest of this page view) and server-side (for every
-    // other view until the calendar date rolls over), so flipping back and
-    // forth between tabs never re-fetches.
+    // Only fetch the first time this is clicked — a successful result stays
+    // cached both here and server-side (until the calendar date rolls
+    // over), so flipping back and forth never re-fetches. A failed attempt
+    // is NOT treated as "idle" is gone forever within this view either —
+    // reload the page to retry sooner than that.
     if (tomorrow.status === "idle") {
       startTransition(async () => {
         try {
@@ -75,7 +86,7 @@ export function GamesTabs({
                 : "text-muted hover:text-foreground"
             }`}
           >
-            Today
+            Today <span className="opacity-70">({formatEasternDateLabel(todayDate)})</span>
           </button>
           <button
             type="button"
@@ -86,7 +97,8 @@ export function GamesTabs({
                 : "text-muted hover:text-foreground"
             }`}
           >
-            Tomorrow
+            Tomorrow{" "}
+            <span className="opacity-70">({formatEasternDateLabel(tomorrowDate)})</span>
           </button>
         </div>
         <a
@@ -122,6 +134,7 @@ export function GamesTabs({
             <GameList
               games={tomorrow.games}
               sourceAvailable={tomorrow.sourceAvailable}
+              error={tomorrow.error}
               logos={logos}
               emptyMessage="No games scheduled tomorrow."
             />
@@ -135,11 +148,13 @@ export function GamesTabs({
 function GameList({
   games,
   sourceAvailable,
+  error,
   logos,
   emptyMessage,
 }: {
   games: GameSummary[];
   sourceAvailable: boolean;
+  error?: string;
   logos: Map<string, string>;
   emptyMessage: string;
 }) {
@@ -148,6 +163,7 @@ function GameList({
       {!sourceAvailable && (
         <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
           NHL schedule data was unavailable on the last refresh.
+          {error && <span className="block font-mono opacity-80">{error}</span>}
         </p>
       )}
       {games.length === 0 ? (

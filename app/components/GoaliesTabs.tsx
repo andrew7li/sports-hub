@@ -2,29 +2,40 @@
 
 import { useState, useTransition } from "react";
 import type { StartingGoalieMatchup } from "@/lib/nhl/types";
+import { formatEasternDateLabel } from "@/lib/nhl/easternDate";
 import { GoalieMatchupCard } from "./GoalieCard";
 
 type Tab = "today" | "tomorrow";
 
 type TomorrowState =
   | { status: "idle" }
-  | { status: "loaded"; matchups: StartingGoalieMatchup[]; sourceAvailable: boolean }
+  | {
+      status: "loaded";
+      matchups: StartingGoalieMatchup[];
+      sourceAvailable: boolean;
+      error?: string;
+    }
   | { status: "error" };
 
 export function GoaliesTabs({
   todayMatchups,
   todaySourceAvailable,
+  todayDate,
+  tomorrowDate,
   logos,
   fetchTomorrow,
 }: {
   todayMatchups: StartingGoalieMatchup[];
   todaySourceAvailable: boolean;
+  todayDate: string;
+  tomorrowDate: string;
   logos: Map<string, string>;
   // A server action passed down from the page — keeps this component free of
   // its own "use server" import and of knowing anything about auth.
   fetchTomorrow: () => Promise<{
     matchups: StartingGoalieMatchup[];
     sourceAvailable: boolean;
+    error?: string;
   }>;
 }) {
   const [tab, setTab] = useState<Tab>("today");
@@ -67,7 +78,7 @@ export function GoaliesTabs({
                 : "text-muted hover:text-foreground"
             }`}
           >
-            Today
+            Today <span className="opacity-70">({formatEasternDateLabel(todayDate)})</span>
           </button>
           <button
             type="button"
@@ -78,7 +89,8 @@ export function GoaliesTabs({
                 : "text-muted hover:text-foreground"
             }`}
           >
-            Tomorrow
+            Tomorrow{" "}
+            <span className="opacity-70">({formatEasternDateLabel(tomorrowDate)})</span>
           </button>
         </div>
         <a
@@ -114,6 +126,7 @@ export function GoaliesTabs({
             <GoalieList
               matchups={tomorrow.matchups}
               sourceAvailable={tomorrow.sourceAvailable}
+              error={tomorrow.error}
               logos={logos}
               emptyMessage="No games scheduled tomorrow."
             />
@@ -127,11 +140,13 @@ export function GoaliesTabs({
 function GoalieList({
   matchups,
   sourceAvailable,
+  error,
   logos,
   emptyMessage,
 }: {
   matchups: StartingGoalieMatchup[];
   sourceAvailable: boolean;
+  error?: string;
   logos: Map<string, string>;
   emptyMessage: string;
 }) {
@@ -141,6 +156,7 @@ function GoalieList({
         <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
           Starting goalies source (dailyfaceoff.com) was unavailable on the
           last refresh.
+          {error && <span className="block font-mono opacity-80">{error}</span>}
         </p>
       )}
       {matchups.length === 0 ? (

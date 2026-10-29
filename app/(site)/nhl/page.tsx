@@ -13,7 +13,12 @@ import { RegressionPicksTabs } from "@/app/components/RegressionPicksTabs";
 import { FatiguePicksTabs } from "@/app/components/FatiguePicksTabs";
 import { TeamLogo } from "@/app/components/TeamLogo";
 import { DeltaBadge, FatigueBadge } from "@/app/components/Badges";
-import { NHL_TIME_ZONE as TIME_ZONE } from "@/lib/nhl/easternDate";
+import {
+  NHL_TIME_ZONE as TIME_ZONE,
+  getNextEasternMidnight,
+  getTodayEasternDate,
+  getTomorrowEasternDate,
+} from "@/lib/nhl/easternDate";
 import {
   RECENT_GAME_COUNT,
   FATIGUE_WINDOW_DAYS,
@@ -93,6 +98,8 @@ async function NhlView() {
     formRowsByTeam,
     TOP_PICKS_COUNT,
   );
+  const todayDate = getTodayEasternDate();
+  const tomorrowDate = getTomorrowEasternDate();
 
   return (
     <div className="flex flex-col gap-12">
@@ -113,6 +120,18 @@ async function NhlView() {
               · last refresh failed: {state.lastError}
             </span>
           )}
+          <span className="text-muted">
+            {" "}
+            · Next scrape{" "}
+            <span className="text-foreground">
+              {getNextEasternMidnight().toLocaleString("en-US", {
+                timeZone: TIME_ZONE,
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}{" "}
+              ET
+            </span>
+          </span>
         </p>
         <form action={refreshNhlAction}>
           <RefreshButton />
@@ -129,6 +148,8 @@ async function NhlView() {
         <RegressionPicksTabs
           todayItems={todayOverPicks}
           todaySourceAvailable={snapshot.sources.recentGames}
+          todayDate={todayDate}
+          tomorrowDate={tomorrowDate}
           logos={logos}
           fetchTomorrow={getTomorrowRegressionOverPicksAction}
           emptyMessage="No picks today — no game has both teams scoring below their season average right now."
@@ -146,6 +167,8 @@ async function NhlView() {
         <RegressionPicksTabs
           todayItems={todayUnderPicks}
           todaySourceAvailable={snapshot.sources.recentGames}
+          todayDate={todayDate}
+          tomorrowDate={tomorrowDate}
           logos={logos}
           fetchTomorrow={getTomorrowRegressionUnderPicksAction}
           emptyMessage="No picks today — no game has both teams scoring above their season average right now."
@@ -163,6 +186,8 @@ async function NhlView() {
         <FatiguePicksTabs
           todayItems={todayFatiguePicks}
           todaySourceAvailable={snapshot.sources.recentGames}
+          todayDate={todayDate}
+          tomorrowDate={tomorrowDate}
           logos={logos}
           fetchTomorrow={getTomorrowFatiguePicksAction}
         />
@@ -172,6 +197,8 @@ async function NhlView() {
         <SectionTitle>Games</SectionTitle>
         <GamesTabs
           todayGames={snapshot.games}
+          todayDate={todayDate}
+          tomorrowDate={tomorrowDate}
           logos={logos}
           fetchTomorrow={getTomorrowGamesAction}
         />
@@ -182,6 +209,8 @@ async function NhlView() {
         <GoaliesTabs
           todayMatchups={snapshot.startingGoalies}
           todaySourceAvailable={snapshot.sources.dailyFaceoff}
+          todayDate={todayDate}
+          tomorrowDate={tomorrowDate}
           logos={logos}
           fetchTomorrow={getTomorrowGoaliesAction}
         />

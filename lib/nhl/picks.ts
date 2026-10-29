@@ -2,8 +2,8 @@ import { getTodayEasternDate } from "./easternDate";
 import type { AggregatedTeam, GameSummary, RecentGame } from "./types";
 
 export const RECENT_GAME_COUNT = 5;
-// "3 games in 4 days" — a team at or above this is flagged as fatigued.
-export const FATIGUE_WINDOW_DAYS = 4;
+// "3 games in 5 days" — a team at or above this is flagged as fatigued.
+export const FATIGUE_WINDOW_DAYS = 5;
 export const FATIGUE_GAME_THRESHOLD = 3;
 export const TOP_PICKS_COUNT = 3;
 

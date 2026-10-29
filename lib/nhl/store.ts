@@ -14,12 +14,14 @@ type TomorrowGoaliesCache = {
   date: string;
   matchups: StartingGoalieMatchup[];
   sourceAvailable: boolean;
+  error?: string;
 };
 
 type TomorrowGamesCache = {
   date: string;
   games: GameSummary[];
   sourceAvailable: boolean;
+  error?: string;
 };
 
 type GlobalStore = {
@@ -94,16 +96,30 @@ export async function getOrFetchTomorrowGoalies(): Promise<TomorrowGoaliesCache>
   }
 
   g.__sportshubTomorrowGoaliesInFlight = (async () => {
-    let result: TomorrowGoaliesCache;
     try {
       const matchups = await fetchStartingGoalies(targetDate);
-      result = { date: targetDate, matchups, sourceAvailable: true };
-    } catch {
-      result = { date: targetDate, matchups: [], sourceAvailable: false };
+      const result: TomorrowGoaliesCache = {
+        date: targetDate,
+        matchups,
+        sourceAvailable: true,
+      };
+      // Only a successful fetch is cached — a failure (network blip, a
+      // transient block, etc.) must not get "stuck" as unavailable for the
+      // rest of the day with no way to retry.
+      g.__sportshubTomorrowGoalies = result;
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("getOrFetchTomorrowGoalies failed:", message);
+      return {
+        date: targetDate,
+        matchups: [],
+        sourceAvailable: false,
+        error: message,
+      };
+    } finally {
+      g.__sportshubTomorrowGoaliesInFlight = null;
     }
-    g.__sportshubTomorrowGoalies = result;
-    g.__sportshubTomorrowGoaliesInFlight = null;
-    return result;
   })();
 
   return g.__sportshubTomorrowGoaliesInFlight;
@@ -123,16 +139,29 @@ export async function getOrFetchTomorrowGames(): Promise<TomorrowGamesCache> {
   }
 
   g.__sportshubTomorrowGamesInFlight = (async () => {
-    let result: TomorrowGamesCache;
     try {
       const games = await fetchScores(targetDate);
-      result = { date: targetDate, games, sourceAvailable: true };
-    } catch {
-      result = { date: targetDate, games: [], sourceAvailable: false };
+      const result: TomorrowGamesCache = {
+        date: targetDate,
+        games,
+        sourceAvailable: true,
+      };
+      // Only a successful fetch is cached, same reasoning as the goalies
+      // cache above: a failed attempt must stay retryable.
+      g.__sportshubTomorrowGames = result;
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("getOrFetchTomorrowGames failed:", message);
+      return {
+        date: targetDate,
+        games: [],
+        sourceAvailable: false,
+        error: message,
+      };
+    } finally {
+      g.__sportshubTomorrowGamesInFlight = null;
     }
-    g.__sportshubTomorrowGames = result;
-    g.__sportshubTomorrowGamesInFlight = null;
-    return result;
   })();
 
   return g.__sportshubTomorrowGamesInFlight;

@@ -39,19 +39,19 @@ export async function refreshNhlAction() {
 export async function getTomorrowGoaliesAction(): Promise<{
   matchups: StartingGoalieMatchup[];
   sourceAvailable: boolean;
+  error?: string;
 }> {
   await requireAuth();
-  const { matchups, sourceAvailable } = await getOrFetchTomorrowGoalies();
-  return { matchups, sourceAvailable };
+  return getOrFetchTomorrowGoalies();
 }
 
 export async function getTomorrowGamesAction(): Promise<{
   games: GameSummary[];
   sourceAvailable: boolean;
+  error?: string;
 }> {
   await requireAuth();
-  const { games, sourceAvailable } = await getOrFetchTomorrowGames();
-  return { games, sourceAvailable };
+  return getOrFetchTomorrowGames();
 }
 
 type TomorrowPicksContext = {
@@ -59,6 +59,7 @@ type TomorrowPicksContext = {
   snapshot: NhlSnapshot | null;
   formRowsByTeam: Map<string, RecentFormRow>;
   sourceAvailable: boolean;
+  error?: string;
 };
 
 // Shared by the three pick actions below: recent-form data (last 5 games vs.
@@ -67,8 +68,11 @@ type TomorrowPicksContext = {
 // that's already in the store. Only tomorrow's game list is itself cached
 // (by getOrFetchTomorrowGames).
 async function getTomorrowPicksContext(): Promise<TomorrowPicksContext> {
-  const { games, sourceAvailable: gamesAvailable } =
-    await getOrFetchTomorrowGames();
+  const {
+    games,
+    sourceAvailable: gamesAvailable,
+    error,
+  } = await getOrFetchTomorrowGames();
 
   const { snapshot } = getNhlState();
   const formRows = buildFormRows(snapshot?.teams ?? [], new Map());
@@ -79,44 +83,51 @@ async function getTomorrowPicksContext(): Promise<TomorrowPicksContext> {
     snapshot,
     formRowsByTeam,
     sourceAvailable: gamesAvailable && snapshot?.sources.recentGames === true,
+    error,
   };
 }
 
 export async function getTomorrowRegressionOverPicksAction(): Promise<{
   items: RegressionPick[];
   sourceAvailable: boolean;
+  error?: string;
 }> {
   await requireAuth();
-  const { games, formRowsByTeam, sourceAvailable } =
+  const { games, formRowsByTeam, sourceAvailable, error } =
     await getTomorrowPicksContext();
   return {
     items: computeRegressionOverPicks(games, formRowsByTeam, TOP_PICKS_COUNT),
     sourceAvailable,
+    error,
   };
 }
 
 export async function getTomorrowRegressionUnderPicksAction(): Promise<{
   items: RegressionPick[];
   sourceAvailable: boolean;
+  error?: string;
 }> {
   await requireAuth();
-  const { games, formRowsByTeam, sourceAvailable } =
+  const { games, formRowsByTeam, sourceAvailable, error } =
     await getTomorrowPicksContext();
   return {
     items: computeRegressionUnderPicks(games, formRowsByTeam, TOP_PICKS_COUNT),
     sourceAvailable,
+    error,
   };
 }
 
 export async function getTomorrowFatiguePicksAction(): Promise<{
   items: FatiguePick[];
   sourceAvailable: boolean;
+  error?: string;
 }> {
   await requireAuth();
-  const { games, formRowsByTeam, sourceAvailable } =
+  const { games, formRowsByTeam, sourceAvailable, error } =
     await getTomorrowPicksContext();
   return {
     items: computeFatiguePicks(games, formRowsByTeam, TOP_PICKS_COUNT),
     sourceAvailable,
+    error,
   };
 }

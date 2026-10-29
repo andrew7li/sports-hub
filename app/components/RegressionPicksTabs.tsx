@@ -2,13 +2,19 @@
 
 import { useState, useTransition } from "react";
 import type { RegressionPick } from "@/lib/nhl/picks";
+import { formatEasternDateLabel } from "@/lib/nhl/easternDate";
 import { RegressionPickCard } from "./PickCard";
 
 type Tab = "today" | "tomorrow";
 
 type TomorrowState =
   | { status: "idle" }
-  | { status: "loaded"; items: RegressionPick[]; sourceAvailable: boolean }
+  | {
+      status: "loaded";
+      items: RegressionPick[];
+      sourceAvailable: boolean;
+      error?: string;
+    }
   | { status: "error" };
 
 // Today/Tomorrow toggle for a regression-based picks list (overs or unders —
@@ -20,6 +26,8 @@ type TomorrowState =
 export function RegressionPicksTabs({
   todayItems,
   todaySourceAvailable,
+  todayDate,
+  tomorrowDate,
   logos,
   fetchTomorrow,
   emptyMessage,
@@ -27,10 +35,13 @@ export function RegressionPicksTabs({
 }: {
   todayItems: RegressionPick[];
   todaySourceAvailable: boolean;
+  todayDate: string;
+  tomorrowDate: string;
   logos: Map<string, string>;
   fetchTomorrow: () => Promise<{
     items: RegressionPick[];
     sourceAvailable: boolean;
+    error?: string;
   }>;
   emptyMessage: string;
   unavailableMessage: string;
@@ -66,7 +77,7 @@ export function RegressionPicksTabs({
                 : "text-muted hover:text-foreground"
             }`}
           >
-            Today
+            Today <span className="opacity-70">({formatEasternDateLabel(todayDate)})</span>
           </button>
           <button
             type="button"
@@ -77,7 +88,8 @@ export function RegressionPicksTabs({
                 : "text-muted hover:text-foreground"
             }`}
           >
-            Tomorrow
+            Tomorrow{" "}
+            <span className="opacity-70">({formatEasternDateLabel(tomorrowDate)})</span>
           </button>
         </div>
       </div>
@@ -106,6 +118,7 @@ export function RegressionPicksTabs({
             <PickList
               items={tomorrow.items}
               sourceAvailable={tomorrow.sourceAvailable}
+              error={tomorrow.error}
               logos={logos}
               emptyMessage={emptyMessage}
               unavailableMessage={unavailableMessage}
@@ -120,12 +133,14 @@ export function RegressionPicksTabs({
 function PickList({
   items,
   sourceAvailable,
+  error,
   logos,
   emptyMessage,
   unavailableMessage,
 }: {
   items: RegressionPick[];
   sourceAvailable: boolean;
+  error?: string;
   logos: Map<string, string>;
   emptyMessage: string;
   unavailableMessage: string;
@@ -135,6 +150,7 @@ function PickList({
       {!sourceAvailable && (
         <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
           {unavailableMessage}
+          {error && <span className="block font-mono opacity-80">{error}</span>}
         </p>
       )}
       {items.length === 0 ? (
