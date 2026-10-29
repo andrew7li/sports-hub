@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { SPORTS } from "@/lib/sports";
+import { Logo } from "@/app/components/Logo";
 import { loginAction } from "./actions";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -10,13 +11,14 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-20">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="mb-4 grid size-12 place-items-center rounded-xl bg-foreground text-base font-bold text-background">
-            SH
-          </span>
+          <Logo className="mb-4 size-12" />
           <h1 className="mb-1 text-2xl font-semibold tracking-tight">
             Welcome to SportsHub
           </h1>
-          <p className="text-sm text-muted">Sign in to view stats.</p>
+          <p className="text-sm text-muted mb-1">Sign in to view stats.</p>
+          <p className="text-xs italic">
+            {`"There are only winners and quitters in gambling."`}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-line p-6">
