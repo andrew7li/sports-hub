@@ -5,7 +5,9 @@
 // it from.
 //
 // Usage: tsx scripts/scrape-goalies.ts [YYYY-MM-DD]
-// Defaults to today's Eastern date when no argument is given.
+// With no argument, scrapes both today's and tomorrow's Eastern date (the
+// app needs both — see Today/Tomorrow tabs). A single date argument scrapes
+// just that date instead, for manual backfill.
 // Requires REDIS_URL in the environment.
 // Optionally calls APP_URL + "/api/goalies-updated" with SCRAPE_CALLBACK_SECRET
 // afterward, to tell the app to pick up the new data immediately rather than
@@ -13,7 +15,7 @@
 
 import Redis from "ioredis";
 import { fetchStartingGoalies } from "../lib/nhl/sources/dailyFaceoffGoalies";
-import { getTodayEasternDate } from "../lib/nhl/easternDate";
+import { getTodayEasternDate, getTomorrowEasternDate } from "../lib/nhl/easternDate";
 import type { GoaliesRedisPayload } from "../lib/nhl/types";
 
 // Starting goalies for a given date stop being useful once that date has
@@ -25,9 +27,12 @@ function redisKey(date: string): string {
 }
 
 async function main() {
-  const date = process.argv[2] || getTodayEasternDate();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new Error(`Expected a YYYY-MM-DD date argument, got: "${date}"`);
+  const arg = process.argv[2];
+  const dates = arg ? [arg] : [getTodayEasternDate(), getTomorrowEasternDate()];
+  for (const date of dates) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error(`Expected a YYYY-MM-DD date argument, got: "${date}"`);
+    }
   }
 
   const redisUrl = process.env.REDIS_URL;
@@ -35,25 +40,41 @@ async function main() {
     throw new Error("REDIS_URL is not set");
   }
 
-  console.log(`Scraping starting goalies for ${date}...`);
-  const matchups = await fetchStartingGoalies(date);
-  console.log(`Fetched ${matchups.length} matchup(s) for ${date}`);
-
   const redis = new Redis(redisUrl, { maxRetriesPerRequest: 2 });
   redis.on("error", (err) => console.error("Redis connection error:", err.message));
 
+  // Each date is independent — dailyfaceoff.com just not having tomorrow's
+  // lines up yet is normal (fetchStartingGoalies returns [] for that, not an
+  // error) and shouldn't stop today's write, or vice versa.
+  const failures: string[] = [];
   try {
-    const payload: GoaliesRedisPayload = {
-      date,
-      matchups,
-      scrapedAt: new Date().toISOString(),
-    };
-    const serialized = JSON.stringify(payload);
-    const key = redisKey(date);
-    await redis.set(key, serialized, "EX", KEY_TTL_SECONDS);
-    console.log(`Wrote ${key} (${serialized.length} bytes, expires in ${KEY_TTL_SECONDS}s)`);
+    for (const date of dates) {
+      try {
+        console.log(`Scraping starting goalies for ${date}...`);
+        const matchups = await fetchStartingGoalies(date);
+        console.log(`Fetched ${matchups.length} matchup(s) for ${date}`);
+
+        const payload: GoaliesRedisPayload = {
+          date,
+          matchups,
+          scrapedAt: new Date().toISOString(),
+        };
+        const serialized = JSON.stringify(payload);
+        const key = redisKey(date);
+        await redis.set(key, serialized, "EX", KEY_TTL_SECONDS);
+        console.log(`Wrote ${key} (${serialized.length} bytes, expires in ${KEY_TTL_SECONDS}s)`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Failed to scrape ${date}:`, message);
+        failures.push(`${date}: ${message}`);
+      }
+    }
   } finally {
     redis.disconnect();
+  }
+
+  if (failures.length === dates.length) {
+    throw new Error(`All dates failed — ${failures.join("; ")}`);
   }
 
   await notifyApp();

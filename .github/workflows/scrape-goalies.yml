@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: "Date to scrape (YYYY-MM-DD). Defaults to today (Eastern) if left blank."
+        description: "Date to scrape (YYYY-MM-DD). Leave blank to scrape both today and tomorrow (Eastern)."
         required: false
         type: string
 
