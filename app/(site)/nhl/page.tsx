@@ -11,6 +11,7 @@ import { GoaliesTabs } from "@/app/components/GoaliesTabs";
 import { GamesTabs } from "@/app/components/GamesTabs";
 import { RegressionPicksTabs } from "@/app/components/RegressionPicksTabs";
 import { FatiguePicksTabs } from "@/app/components/FatiguePicksTabs";
+import { TriggerScrapeButton } from "@/app/components/TriggerScrapeButton";
 import { TeamLogo } from "@/app/components/TeamLogo";
 import { DeltaBadge, FatigueBadge } from "@/app/components/Badges";
 import {
@@ -36,6 +37,7 @@ import {
   getTomorrowRegressionOverPicksAction,
   getTomorrowRegressionUnderPicksAction,
   refreshNhlAction,
+  triggerGoalieScrapeAction,
 } from "./actions";
 
 export const metadata: Metadata = { title: "NHL" };
@@ -205,7 +207,10 @@ async function NhlView() {
       </section>
 
       <section>
-        <SectionTitle>Starting goalies</SectionTitle>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <SectionTitle className="mb-0">Starting goalies</SectionTitle>
+          <TriggerScrapeButton trigger={triggerGoalieScrapeAction} />
+        </div>
         <GoaliesTabs
           todayMatchups={snapshot.startingGoalies}
           todaySourceAvailable={snapshot.sources.dailyFaceoff}
@@ -560,8 +565,14 @@ function OddsBar({ value }: { value: number }) {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-4 text-lg font-semibold">{children}</h2>;
+function SectionTitle({
+  children,
+  className = "mb-4",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <h2 className={`text-lg font-semibold ${className}`}>{children}</h2>;
 }
 
 function NhlSkeleton() {

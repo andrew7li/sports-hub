@@ -1,6 +1,7 @@
 "use server";
 
 import { isAuthenticated } from "@/lib/auth/session";
+import { dispatchGoalieScrape } from "@/lib/github/dispatch";
 import {
   getNhlState,
   getOrFetchTomorrowGames,
@@ -34,6 +35,19 @@ async function requireAuth(): Promise<void> {
 export async function refreshNhlAction() {
   await requireAuth();
   await refreshNhlData();
+}
+
+export async function triggerGoalieScrapeAction(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  await requireAuth();
+  try {
+    await dispatchGoalieScrape();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export async function getTomorrowGoaliesAction(): Promise<{
