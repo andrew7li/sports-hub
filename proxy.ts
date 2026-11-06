@@ -5,6 +5,13 @@ import { isValidSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 // prerendered, so a check inside them would never run — this is the only
 // place that sees every request.
 export default async function proxy(req: NextRequest) {
+  // Called by the GitHub Actions scraper, not a signed-in browser — it
+  // authenticates itself with its own bearer secret (see route.ts), so the
+  // session-cookie gate below must not apply to it.
+  if (req.nextUrl.pathname === "/api/goalies-updated") {
+    return NextResponse.next();
+  }
+
   const signedIn = await isValidSessionToken(
     req.cookies.get(SESSION_COOKIE_NAME)?.value,
   );

@@ -7,10 +7,14 @@
 // Usage: tsx scripts/scrape-goalies.ts [YYYY-MM-DD]
 // Defaults to today's Eastern date when no argument is given.
 // Requires REDIS_URL in the environment.
+// Optionally calls APP_URL + "/api/goalies-updated" with SCRAPE_CALLBACK_SECRET
+// afterward, to tell the app to pick up the new data immediately rather than
+// waiting for its next scheduled refresh — skipped if either is unset.
 
 import Redis from "ioredis";
 import { fetchStartingGoalies } from "../lib/nhl/sources/dailyFaceoffGoalies";
 import { getTodayEasternDate } from "../lib/nhl/easternDate";
+import type { GoaliesRedisPayload } from "../lib/nhl/types";
 
 // Starting goalies for a given date stop being useful once that date has
 // passed — this just keeps the keyspace from accumulating forever.
@@ -39,17 +43,39 @@ async function main() {
   redis.on("error", (err) => console.error("Redis connection error:", err.message));
 
   try {
-    const payload = JSON.stringify({
+    const payload: GoaliesRedisPayload = {
       date,
       matchups,
       scrapedAt: new Date().toISOString(),
-    });
+    };
+    const serialized = JSON.stringify(payload);
     const key = redisKey(date);
-    await redis.set(key, payload, "EX", KEY_TTL_SECONDS);
-    console.log(`Wrote ${key} (${payload.length} bytes, expires in ${KEY_TTL_SECONDS}s)`);
+    await redis.set(key, serialized, "EX", KEY_TTL_SECONDS);
+    console.log(`Wrote ${key} (${serialized.length} bytes, expires in ${KEY_TTL_SECONDS}s)`);
   } finally {
     redis.disconnect();
   }
+
+  await notifyApp();
+}
+
+async function notifyApp(): Promise<void> {
+  const appUrl = process.env.APP_URL;
+  const secret = process.env.SCRAPE_CALLBACK_SECRET;
+  if (!appUrl || !secret) {
+    console.log("APP_URL or SCRAPE_CALLBACK_SECRET not set — skipping app notify.");
+    return;
+  }
+
+  const res = await fetch(new URL("/api/goalies-updated", appUrl), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}` },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`App notify failed: ${res.status} ${res.statusText}${body ? ` — ${body}` : ""}`);
+  }
+  console.log("Notified app — snapshot refreshed.");
 }
 
 main().catch((err) => {

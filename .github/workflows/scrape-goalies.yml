@@ -28,3 +28,5 @@ jobs:
         run: npm run scrape:goalies -- "${{ inputs.date }}"
         env:
           REDIS_URL: ${{ secrets.REDIS_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          SCRAPE_CALLBACK_SECRET: ${{ secrets.SCRAPE_CALLBACK_SECRET }}

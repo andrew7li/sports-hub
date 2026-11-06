@@ -4,7 +4,7 @@ import {
   fetchStandings,
 } from "./sources/nhlApi";
 import { fetchPlayoffOdds } from "./sources/hockeyStatsPlayoffOdds";
-import { fetchStartingGoalies } from "./sources/dailyFaceoffGoalies";
+import { fetchGoaliesFromRedis } from "./sources/redisGoalies";
 import { getTodayEasternDate } from "./easternDate";
 import type { NhlSnapshot } from "./types";
 
@@ -32,11 +32,14 @@ export async function aggregateNhlSnapshot(): Promise<NhlSnapshot> {
     // NHL's own "now" alias lags behind the actual calendar day (observed
     // still returning yesterday's slate well after midnight ET), so this
     // asks for our own computed Eastern date explicitly instead of trusting
-    // their rollover timing. Same reasoning applied to dailyfaceoff.com's
-    // implicit "today" below.
+    // their rollover timing.
     fetchScores(getTodayEasternDate()),
     fetchPlayoffOdds(),
-    fetchStartingGoalies(getTodayEasternDate()),
+    // Goalies are read from Redis rather than scraped directly here —
+    // dailyfaceoff.com's bot protection blocks Vercel's IP range, so the
+    // actual scrape runs from GitHub Actions (scripts/scrape-goalies.ts)
+    // and writes here; this just reads whatever it last wrote.
+    fetchGoaliesFromRedis(getTodayEasternDate()),
   ]);
 
   if (standingsResult.status === "rejected") {

@@ -1,5 +1,5 @@
 import { aggregateNhlSnapshot } from "./aggregate";
-import { fetchStartingGoalies } from "./sources/dailyFaceoffGoalies";
+import { fetchGoaliesFromRedis } from "./sources/redisGoalies";
 import { fetchScores } from "./sources/nhlApi";
 import { getTomorrowEasternDate } from "./easternDate";
 import type { GameSummary, NhlSnapshot, StartingGoalieMatchup } from "./types";
@@ -97,7 +97,7 @@ export async function getOrFetchTomorrowGoalies(): Promise<TomorrowGoaliesCache>
 
   g.__sportshubTomorrowGoaliesInFlight = (async () => {
     try {
-      const matchups = await fetchStartingGoalies(targetDate);
+      const matchups = await fetchGoaliesFromRedis(targetDate);
       const result: TomorrowGoaliesCache = {
         date: targetDate,
         matchups,

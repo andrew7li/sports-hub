@@ -69,6 +69,15 @@ export type StartingGoalieMatchup = {
   awayGoalie: StartingGoalie;
 };
 
+// The exact shape scripts/scrape-goalies.ts writes to Redis under
+// `goalies:<date>`, and what lib/nhl/sources/redisGoalies.ts reads back —
+// shared here so the writer and reader can't silently drift apart.
+export type GoaliesRedisPayload = {
+  date: string;
+  matchups: StartingGoalieMatchup[];
+  scrapedAt: string;
+};
+
 export type NhlSnapshot = {
   teams: AggregatedTeam[];
   games: GameSummary[];
