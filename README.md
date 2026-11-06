@@ -13,3 +13,7 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Redis
+
+Redis is hosted with UpStash. Access this link [here](https://console.upstash.com/home?teamid=0) to view the Redis dashboard.
