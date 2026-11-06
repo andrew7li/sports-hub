@@ -79,4 +79,13 @@ export type NhlSnapshot = {
     recentGames: boolean;
     dailyFaceoff: boolean;
   };
+  // The actual rejection reason for each source that failed on the last
+  // refresh, keyed the same as `sources` — undefined for a source that
+  // succeeded (or hasn't failed yet). Exists so a failure can be diagnosed
+  // from the UI itself rather than needing access to server logs.
+  sourceErrors: {
+    hockeyStats?: string;
+    recentGames?: string;
+    dailyFaceoff?: string;
+  };
 };

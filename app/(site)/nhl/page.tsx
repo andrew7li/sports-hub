@@ -209,6 +209,7 @@ async function NhlView() {
         <GoaliesTabs
           todayMatchups={snapshot.startingGoalies}
           todaySourceAvailable={snapshot.sources.dailyFaceoff}
+          todayError={snapshot.sourceErrors.dailyFaceoff}
           todayDate={todayDate}
           tomorrowDate={tomorrowDate}
           logos={logos}
@@ -219,6 +220,7 @@ async function NhlView() {
       <RecentFormSection
         rows={formRows}
         sourceAvailable={snapshot.sources.recentGames}
+        sourceError={snapshot.sourceErrors.recentGames}
       />
 
       <section>
@@ -227,6 +229,11 @@ async function NhlView() {
           <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
             Playoff odds source (hockeystats.com) was unavailable on the last
             refresh.
+            {snapshot.sourceErrors.hockeyStats && (
+              <span className="block font-mono opacity-80">
+                {snapshot.sourceErrors.hockeyStats}
+              </span>
+            )}
           </p>
         )}
         <div className="grid gap-6 xl:grid-cols-2">
@@ -313,9 +320,11 @@ const EXTREME_COUNT = 5;
 function RecentFormSection({
   rows: unsortedRows,
   sourceAvailable,
+  sourceError,
 }: {
   rows: RecentFormRow[];
   sourceAvailable: boolean;
+  sourceError?: string;
 }) {
   const rows = [...unsortedRows].sort((a, b) => a.delta - b.delta);
 
@@ -339,6 +348,9 @@ function RecentFormSection({
       {!sourceAvailable && (
         <p className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
           NHL schedule data was unavailable on the last refresh.
+          {sourceError && (
+            <span className="block font-mono opacity-80">{sourceError}</span>
+          )}
         </p>
       )}
       {rows.length === 0 ? (

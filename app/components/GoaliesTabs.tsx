@@ -20,6 +20,7 @@ type TomorrowState =
 export function GoaliesTabs({
   todayMatchups,
   todaySourceAvailable,
+  todayError,
   todayDate,
   tomorrowDate,
   logos,
@@ -27,6 +28,7 @@ export function GoaliesTabs({
 }: {
   todayMatchups: StartingGoalieMatchup[];
   todaySourceAvailable: boolean;
+  todayError?: string;
   todayDate: string;
   tomorrowDate: string;
   logos: Map<string, string>;
@@ -107,6 +109,7 @@ export function GoaliesTabs({
         <GoalieList
           matchups={todayMatchups}
           sourceAvailable={todaySourceAvailable}
+          error={todayError}
           logos={logos}
           emptyMessage="No confirmed starters yet."
         />
