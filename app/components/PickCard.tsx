@@ -1,5 +1,5 @@
 import {
-  FATIGUE_WINDOW_DAYS,
+  FATIGUE_DISPLAY_WINDOW_DAYS,
   type FatiguePick,
   type RecentFormRow,
   type RegressionPick,
@@ -72,9 +72,7 @@ function PickTeamRow({ row, logo }: { row: RecentFormRow; logo?: string }) {
       <span className="flex items-center gap-2.5">
         <TeamLogo src={logo} abbrev={row.team.teamAbbrev} />
         <span className="text-sm font-medium">{row.team.fullName}</span>
-        {row.fatigued && (
-          <FatigueBadge count={row.gamesInFatigueWindow} fatigued />
-        )}
+        {row.fatigued && <FatigueBadge match={row.fatigueMatches[0]} />}
       </span>
       <DeltaBadge value={row.delta} />
     </div>
@@ -89,10 +87,10 @@ function PickFatigueRow({ row, logo }: { row: RecentFormRow; logo?: string }) {
         <span className="text-sm font-medium">{row.team.fullName}</span>
       </span>
       {row.fatigued ? (
-        <FatigueBadge count={row.gamesInFatigueWindow} fatigued />
+        <FatigueBadge match={row.fatigueMatches[0]} />
       ) : (
         <span className="whitespace-nowrap rounded bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-          Rested ({row.gamesInFatigueWindow} in {FATIGUE_WINDOW_DAYS}d)
+          Rested ({row.gamesInDisplayWindow} in {FATIGUE_DISPLAY_WINDOW_DAYS}d)
         </span>
       )}
     </div>

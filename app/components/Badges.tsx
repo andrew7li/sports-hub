@@ -1,4 +1,4 @@
-import { FATIGUE_WINDOW_DAYS } from "@/lib/nhl/picks";
+import type { FatigueMatch } from "@/lib/nhl/picks";
 
 export function DeltaBadge({ value }: { value: number }) {
   // ±0.5 GF/G over five games is roughly 2–3 goals off pace — enough to be
@@ -21,17 +21,18 @@ export function DeltaBadge({ value }: { value: number }) {
   );
 }
 
-export function FatigueBadge({
-  count,
-  fatigued,
-}: {
-  count: number;
-  fatigued: boolean;
-}) {
-  if (!fatigued) return <span className="text-muted">—</span>;
+// `match` is the strictest fatigue rule a team currently satisfies (e.g.
+// "3 in 5" ranks as more severe than "3 in 6", since a team meeting the
+// stricter rule always also meets the looser one). Pass `null` for a team
+// that isn't fatigued at all.
+export function FatigueBadge({ match }: { match: FatigueMatch | null }) {
+  if (!match) return <span className="text-muted">—</span>;
   return (
-    <span className="whitespace-nowrap rounded bg-red-500/10 px-1.5 py-0.5 text-[11px] font-medium text-red-600 dark:text-red-400">
-      {count} in {FATIGUE_WINDOW_DAYS}d
+    <span
+      className="whitespace-nowrap rounded bg-red-500/10 px-1.5 py-0.5 text-[11px] font-medium text-red-600 dark:text-red-400"
+      title={`Meets the "${match.label}" rule`}
+    >
+      {match.gamesInWindow} in {match.windowDays}d
     </span>
   );
 }

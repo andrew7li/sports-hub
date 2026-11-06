@@ -21,8 +21,7 @@ import {
 } from "@/lib/nhl/easternDate";
 import {
   RECENT_GAME_COUNT,
-  FATIGUE_WINDOW_DAYS,
-  FATIGUE_GAME_THRESHOLD,
+  FATIGUE_RULES,
   TOP_PICKS_COUNT,
   buildFormRows,
   computeFatiguePicks,
@@ -179,9 +178,10 @@ async function NhlView() {
       <section>
         <SectionTitle>Top picks: fatigue</SectionTitle>
         <p className="-mt-2 mb-4 text-sm text-muted">
-          Games where exactly one team has played {FATIGUE_GAME_THRESHOLD}+
-          games in the last {FATIGUE_WINDOW_DAYS} days — a rest edge for their
-          opponent. Sorted by how fatigued the tired team is.
+          Games where exactly one team is fatigued (
+          {FATIGUE_RULES.map((r) => r.label).join(" or ")} games) — a rest
+          edge for their opponent. Sorted by how severe the tired team&apos;s
+          fatigue is.
         </p>
         <FatiguePicksTabs
           todayItems={todayFatiguePicks}
@@ -371,7 +371,7 @@ function RecentFormSection({
                     Today
                   </ColumnHeader>
                   <ColumnHeader
-                    tip={`Games played in the last ${FATIGUE_WINDOW_DAYS} days. Flagged at ${FATIGUE_GAME_THRESHOLD}+ — likely fatigued.`}
+                    tip={`Flagged when a team has played ${FATIGUE_RULES.map((r) => r.label).join(" or ")} games — the stricter (smaller-window) rule shown when both match.`}
                   >
                     Rest
                   </ColumnHeader>
@@ -498,10 +498,7 @@ function RecentFormTableRow({ row }: { row: RecentFormRow }) {
         )}
       </td>
       <td className="py-2 pr-4">
-        <FatigueBadge
-          count={row.gamesInFatigueWindow}
-          fatigued={row.fatigued}
-        />
+        <FatigueBadge match={row.fatigueMatches[0] ?? null} />
       </td>
       <td className="py-2 pr-4 text-right">
         {record.wins}-{record.losses}-{record.otLosses}

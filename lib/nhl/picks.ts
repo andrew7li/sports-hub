@@ -2,10 +2,32 @@ import { getTodayEasternDate } from "./easternDate";
 import type { AggregatedTeam, GameSummary, RecentGame } from "./types";
 
 export const RECENT_GAME_COUNT = 5;
-// "3 games in 5 days" — a team at or above this is flagged as fatigued.
-export const FATIGUE_WINDOW_DAYS = 5;
-export const FATIGUE_GAME_THRESHOLD = 3;
 export const TOP_PICKS_COUNT = 3;
+
+export type FatigueRule = {
+  windowDays: number;
+  threshold: number;
+  label: string;
+};
+
+// Ordered strictest (smallest window) first. Because a wider window always
+// covers at least the same games as a narrower one, meeting a stricter rule
+// here guarantees meeting every looser rule after it too — so these aren't
+// independent flags, they're a severity scale. The first rule a team
+// matches is its most severe classification.
+export const FATIGUE_RULES: FatigueRule[] = [
+  { windowDays: 5, threshold: 3, label: "3 in 5" },
+  { windowDays: 6, threshold: 3, label: "3 in 6" },
+];
+
+// The widest configured window — used to show a game count even for teams
+// that haven't matched any rule (e.g. "Rested (1 in 6d)" next to a tired
+// opponent), since it's the single most informative number available.
+export const FATIGUE_DISPLAY_WINDOW_DAYS = Math.max(
+  ...FATIGUE_RULES.map((r) => r.windowDays),
+);
+
+export type FatigueMatch = FatigueRule & { gamesInWindow: number };
 
 export type RecentFormRow = {
   team: AggregatedTeam;
@@ -20,8 +42,11 @@ export type RecentFormRow = {
   // means scoring above it — the "due to cool off" candidates.
   delta: number;
   todayOpponent: string | null;
-  gamesInFatigueWindow: number;
+  // Every FATIGUE_RULES entry this team currently satisfies, strictest
+  // first. Empty when not fatigued at all.
+  fatigueMatches: FatigueMatch[];
   fatigued: boolean;
+  gamesInDisplayWindow: number;
 };
 
 export function recentFormRow(
@@ -35,11 +60,12 @@ export function recentFormRow(
   const goalsAgainst = games.reduce((sum, g) => sum + g.goalsAgainst, 0);
   const recentGfPerGame = goalsFor / games.length;
   const seasonGfPerGame = team.goalsFor / team.gamesPlayed;
-  const gamesInFatigueWindow = gamesPlayedWithinDays(
-    games,
-    getTodayEasternDate(),
-    FATIGUE_WINDOW_DAYS,
-  );
+  const today = getTodayEasternDate();
+
+  const fatigueMatches = FATIGUE_RULES.map((rule) => ({
+    ...rule,
+    gamesInWindow: gamesPlayedWithinDays(games, today, rule.windowDays),
+  })).filter((match) => match.gamesInWindow >= match.threshold);
 
   return {
     team,
@@ -55,8 +81,13 @@ export function recentFormRow(
     seasonGfPerGame,
     delta: recentGfPerGame - seasonGfPerGame,
     todayOpponent: todayOpponents.get(team.teamAbbrev) ?? null,
-    gamesInFatigueWindow,
-    fatigued: gamesInFatigueWindow >= FATIGUE_GAME_THRESHOLD,
+    fatigueMatches,
+    fatigued: fatigueMatches.length > 0,
+    gamesInDisplayWindow: gamesPlayedWithinDays(
+      games,
+      today,
+      FATIGUE_DISPLAY_WINDOW_DAYS,
+    ),
   };
 }
 
@@ -151,7 +182,8 @@ export type FatiguePick = {
 
 // Flags games where exactly one side is fatigued — a two-sided fatigue
 // matchup (or neither side fatigued) has no rest edge, so those are skipped.
-// Ranked by how fatigued the tired team is (more games in the window first).
+// Ranked by severity: the tired team's strictest matched rule (smaller
+// window = more severe) first, then by games played in that window.
 export function computeFatiguePicks(
   games: GameSummary[],
   formRowsByTeam: Map<string, RecentFormRow>,
@@ -173,8 +205,11 @@ export function computeFatiguePicks(
     });
   }
   return candidates
-    .sort(
-      (a, b) => b.tiredRow.gamesInFatigueWindow - a.tiredRow.gamesInFatigueWindow,
-    )
+    .sort((a, b) => {
+      const am = a.tiredRow.fatigueMatches[0];
+      const bm = b.tiredRow.fatigueMatches[0];
+      if (am.windowDays !== bm.windowDays) return am.windowDays - bm.windowDays;
+      return bm.gamesInWindow - am.gamesInWindow;
+    })
     .slice(0, count);
 }
